@@ -39,24 +39,22 @@ def __remove_articles_from_pocket(pocket_articles):
   except pocket.PocketException as e:
     print(e.message)
 
-def __archive_missing_articles(pocket_entries, urls_of_unread_articles):
-  for url, entry in pocket_entries.items():
-    if url not in urls_of_unread_articles:
-      pocket_connection.archive(entry['item_id'])
+def __archive_missing_articles(urls_to_archive, pocket_entries):
+  for url in urls_to_archive:
+    pocket_connection.archive(pocket_entries[url]['item_id'])
   try:
     pocket_connection.commit()
   except pocket.PocketException as e:
     print(e.message)
 
-def __add_new_articles(unread_articles, urls_of_unread_articles):
-  for url, article in unread_articles.items():
-    if url not in urls_of_unread_articles:
-      pocket_connection.add(url)
+def __add_new_articles(urls):
+  for url in urls:
+    pocket_connection.add(url)
 
 if __name__ == "__main__":
-  unread_articles = __wallabag_unread_articles()
+  wallabag_articles = __wallabag_unread_articles()
   pocket_entries = __pocket_unread_articles()
 
-  __archive_missing_articles(pocket_entries, unread_articles.keys())
+  __archive_missing_articles(pocket_entries.keys() - wallabag_articles.keys(), pocket_entries)
 
-  __add_new_articles(unread_articles, pocket_entries.keys())
+  __add_new_articles(wallabag_articles.keys() - pocket_entries.keys())
