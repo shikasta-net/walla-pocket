@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  wallapocket:
+    image: shikasta/wallapocket:0.1
+    build: .
+    command:
+      - "--host=app.wallabag.it"
