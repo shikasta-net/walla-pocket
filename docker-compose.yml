@@ -5,4 +5,4 @@ services:
     image: shikasta/wallapocket:0.1
     build: .
     command:
-      - "--host=app.wallabag.it"
+      - "--wallabag-host=app.wallabag.it"
