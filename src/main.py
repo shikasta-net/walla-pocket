@@ -6,6 +6,7 @@ import feedparser
 import json
 import pocket
 import re
+import sys
 
 arguments = argparse.ArgumentParser(description='Wallabag to Pocket unread article sync.')
 arguments.add_argument('--wallabag-host', type=str, default='app.wallabag.it', help='The Wallabag hostname')
@@ -30,10 +31,7 @@ def __wallabag_unread_articles():
   return articles
 
 def __pocket_unread_articles():
-  try:
-    pocket_feed = pocket_connection.retrieve(state='unread')['list']
-  except pocket.PocketException as e:
-    print(e.message)
+  pocket_feed = pocket_connection.retrieve(state='unread')['list']
   unread_articles = pocket_feed.values() if pocket_feed else []
   articles = OrderedDict()
   for entry in unread_articles:
@@ -44,36 +42,35 @@ def __standardise_url(url):
   return re.sub(r'^https?://(?P<url>.*?)/?$', r'https://\g<url>', url)
 
 def __remove_unread_articles_from_pocket():
-  try:
-    pocket_feed = pocket_connection.retrieve(state='unread')['list']
-    unread_articles = pocket_feed.values() if pocket_feed else []
-    for entry in unread_articles:
-      pocket_connection.delete(entry['item_id'])
-    pocket_connection.commit()
-  except pocket.PocketException as e:
-    print(e.message)
+  pocket_feed = pocket_connection.retrieve(state='unread')['list']
+  unread_articles = pocket_feed.values() if pocket_feed else []
+  for entry in unread_articles:
+    pocket_connection.delete(entry['item_id'])
+  pocket_connection.commit()
 
 def __archive_missing_articles(urls_to_archive, pocket_articles):
   for url in urls_to_archive:
     pocket_connection.archive(pocket_articles[url]['item_id'])
-  try:
-    pocket_connection.commit()
-  except pocket.PocketException as e:
-    print(e.message)
+  pocket_connection.commit()
 
 def __add_new_articles(urls):
   for url in urls:
     pocket_connection.add(url)
 
 if __name__ == "__main__":
-  if config.purge:
-    print("Removing unread")
-    __remove_unread_articles_from_pocket()
+  try:
+    if config.purge:
+      print("Removing unread")
+      __remove_unread_articles_from_pocket()
 
-  wallabag_articles = __wallabag_unread_articles()
-  pocket_articles = __pocket_unread_articles()
+    wallabag_articles = __wallabag_unread_articles()
+    pocket_articles = __pocket_unread_articles()
 
-  __archive_missing_articles(pocket_articles.keys() - wallabag_articles.keys(), pocket_articles)
+    __archive_missing_articles(pocket_articles.keys() - wallabag_articles.keys(), pocket_articles)
 
-  urls_to_add = [url for url in wallabag_articles.keys() if url not in pocket_articles]
-  __add_new_articles(reversed(urls_to_add))
+    urls_to_add = [url for url in wallabag_articles.keys() if url not in pocket_articles]
+    __add_new_articles(reversed(urls_to_add))
+
+  except pocket.PocketException as e:
+    print(f'ERROR {e.message}')
+    sys.exit(1)
