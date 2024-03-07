@@ -2,7 +2,7 @@ version: '3'
 
 services:
   wallapocket:
-    image: shikasta/wallapocket:1.1
+    image: shikasta/wallapocket:1.2
     build: .
     command:
       - "--wallabag-host=app.wallabag.it"

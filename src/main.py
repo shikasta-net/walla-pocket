@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 from collections import OrderedDict
+from requests.exceptions import ConnectionError
 import argparse
 import feedparser
 import json
@@ -59,6 +60,9 @@ def __add_new_articles(urls):
 
 if __name__ == "__main__":
   try:
+    # test connection
+    pocket_connection.retrieve(offset=0, count=10)
+
     if config.purge:
       print("Removing unread")
       __remove_unread_articles_from_pocket()
@@ -70,6 +74,13 @@ if __name__ == "__main__":
 
     urls_to_add = [url for url in wallabag_articles.keys() if url not in pocket_articles]
     __add_new_articles(reversed(urls_to_add))
+
+  except ConnectionError as e:
+    if 'Max retries exceeded' in str(e.args):
+      print(f'WARN pocket unreachable')
+      sys.exit(0)
+    print(f'ERROR connecting, {e.args}')
+    sys.exit(1)
 
   except pocket.PocketException as e:
     print(f'ERROR {e.message}')
